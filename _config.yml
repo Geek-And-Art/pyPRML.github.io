@@ -1,2 +1,17 @@
-name: pyPRML
+# Setup
+title:        pyPRML
+tagline:      python implementation for C.M.Bishop's PRML
+baseurl:      ""
+paginate:     1
+
+# About/contact
+author:
+  name:       Terence Xie
+  url:        https://github.com/kid551
+
+# Gems
+gems:
+  - jekyll-paginate
+
+#Others
 markdown: kramdown

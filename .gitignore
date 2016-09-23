@@ -1,3 +1,5 @@
-# jekyll files
 _site
-.jekyll-metadata
+.bundle
+.sass-cache
+Gemfile.lock
+.DS_Store
