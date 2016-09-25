@@ -1,7 +1,7 @@
 # Setup
 title: pyPRML
 name: pyPRML
-# baseurl: "/pyPRML.github.io"
+baseurl: "/pyPRML.github.io"
 tagline: python implementation for C.M.Bishop's PRML
 paginate: 1
 url:        https://geek-and-art.github.io/pyPRML.github.io
