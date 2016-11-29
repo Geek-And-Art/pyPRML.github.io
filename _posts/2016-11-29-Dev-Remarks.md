@@ -15,6 +15,8 @@ For current Python ecosystem, **SciPy**, the [`scikit-learn`](http://scikit-lear
 
 # Naive Bayes
 
+### - Data Structure Design Trap
+
 When I first create the NB implementation with one method to synthesize data, it's a trap to consider both routines at the same time. My first implementation has to be overthrown as there're too many trails of sythesized method, especially the interface design of NB's train() method.
 
 From the succinct perspective view, the training process only requires input data `X` and output/target data `y`. Thus a clear interface:
@@ -32,4 +34,69 @@ def train(X, y):
 
 is all we need. You don't need to give the `X` or `y` more generative data format, like dictionary, which is the preprocessing work of users or other layers. At this basic layer, we only need to choose the data format based on performance quality.
 
-For Python, it's much like MatLab, it's more good at matrix computation instead of other dynamic allocation like `dict`, which is due to the fixed continuous data allocation in memeory. When you convert contents of one text into `Bag-of-Words` format, numpy array format may give your **1000x** performance improvement comparing the use of `dict`.
+### - Python matrix v.s. dictionary Performance
+
+For Python, it's much like MatLab, it's better at matrix computation instead of other dynamic allocated data structure like `dict`, which is benefited from the fixed continuous data allocation in memeory. When you convert contents of one text into `Bag-of-Words` format, numpy array format may give your **1000x** performance improvement comparing the use of `dict`.
+
+### - Sparse Matrix
+
+When dealing with large scale data set, at least the level of IMDB data, it's very important to use sparse matrix to store bag-of-words data representation. Let's do the math. For IMDB data,
+
+- It contains positive and negative comments, 12500 per class, i.e. 25000 rows in total.
+ - Its volumn of vocabulary is 95073, ignoring stop words, i.e. 95073 columns.
+ - Each frequency of word is represented in integer format, i.e. 4 bytes.
+
+In all, we need $$25000 \times 95073 \times 4 \div 1024^3 = 8$$ GB memory, which is definitely unmanageable for current computer.
+
+Directly implement the library of sparse matrix is painful. Fortunately, we can use `scipy.sparse` for our work. The below two types are helpful:
+
+```python
+# Compressed Sparse Column matrix
+csc_matrix((data, indices, indptr), [shape=(M, N)])
+
+# Compressed Sparse Row matrix
+csr_matrix((data, indices, indptr), [shape=(M, N)])
+```
+
+. To construct the data matching above interface, the implementation of `scikit-learn` is one good example:
+
+```python
+def _make_int_array():
+    """Construct an array.array of a type suitable for scipy.sparse indices."""
+    return array.array(str("i"))
+
+
+j_indices = []
+
+# get efficient array 'array.array'.
+indptr = _make_int_array()
+values = _make_int_array()
+
+# The first pointer should point to the 
+# initial location, i.e. position 0.
+#
+# It's used to construct the parameter of
+# 'csc_matrix((data, indices, indptr), [shape=(M, N)])'
+indptr.append(0)
+
+
+for doc in X:
+    feature_counter = {}
+    for feature in doc:
+        try: feature_idx = voc_dict[feature]
+	    if not feature_idx in feature_counter:
+	        feature_counter[feature_idx] = 1
+	    else:
+	        feature_counter[feature_idx] += 1
+	except KeyError:
+	    # Ignore out-of-vocabulary items for fixed_vocab=True
+	    continue   
+
+    # As array.array, it uses method 'extend'
+    # instead of 'append' to append element.
+    j_indices.extend(feature_counter.keys())
+    values.extend(feature_counter.values())
+    indptr.append(len(j_indices))
+```
+
+Here we notice that the `indptr` can be treated as the endpoint of each doc's chunk.
