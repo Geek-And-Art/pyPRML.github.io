@@ -100,3 +100,111 @@ for doc in X:
 ```
 
 Here we notice that the `indptr` can be treated as the endpoint of each doc's chunk.
+
+TK
+
+### - Use Naive Bayes classifier in scikit-learn
+
+The desgin of scikit-learn's naive bayes classifier is elegant. There're 4 steps to finish
+
+1. Get the raw data from files.
+2. Extract the `counts` feature based on `bag-of-words` model.
+3. Transform 'counts' feature into `tf-idf`(or `tf`) feature.
+4. Train the Naive Bayes model based on `tf-idf` features and corresponding target values.
+5. Predict the test data set.
+
+**Step 1**: get raw data
+
+```python
+# Get IMDB data
+import os
+def getIMDBData(dirPre, dataLabel):
+    res = {}
+    for dl in dataLabel:
+        dirPath = os.path.join(dirPre, dl)
+        fileNames = os.listdir(dirPath)
+
+        docs = []
+        for fN in fileNames:
+            doc = open(os.path.join(dirPath, fN), 'r').read()
+            docs.append(doc)
+            
+        res[dl] = docs
+        
+    return res
+    
+dataPathPre = os.path.join('dataset', 'hw1_dataset_nb')
+devType = ['train', 'test']
+dataLabel = ['pos', 'neg']
+
+IMDB_train = getIMDBData(os.path.join(dataPathPre, devType[0]), dataLabel)
+IMDB_test = getIMDBData(os.path.join(dataPathPre, devType[1]), dataLabel)
+IMDB_stop_words = open(os.path.join(dataPathPre, 'sw.txt'), 'r').read()
+stop_words = IMDB_stop_words.split()
+```
+
+**Step 2**: extract count feature
+
+```python
+# Extract 'counts' feature based on 'bag-of-word'
+from sklearn.feature_extraction.text import CountVectorizer
+count_vect = CountVectorizer(analyzer="word", stop_words=stop_words)
+X_train_counts = count_vect.fit_transform(IMDB_train['pos'] + IMDB_train['neg'])
+X_train_counts.shape
+```
+
+**Step 3**: transform into tf-idf feature
+
+```python
+# Get 'tf-idf' feature from 'counts' feature
+tfidf_transformer = TfidfTransformer()
+X_train_tfidf = tfidf_transformer.fit_transform(X_train_counts)
+X_train_tfidf.shape
+```
+
+**Step 4**: train naive bayes based
+
+```python
+# Train the MultinomialNB based on 'tf-idf' feature,
+# and their corresponding targets.
+from sklearn.naive_bayes import MultinomialNB
+clf = MultinomialNB().fit(X_train_tfidf, [1] * 12500 + [0] * 12500)
+```
+
+**Step 5**: prediction
+
+```python
+# Predict the feature
+docs_new = IMDB_test['neg'][0:5] + IMDB_test['pos'][0:5]
+X_new_counts = count_vect.transform(docs_new)
+X_new_tfidf = tfidf_transformer.transform(X_new_counts)
+
+predicted = clf.predict(X_new_tfidf)
+
+docs_target_names = ['negative', 'positive']
+for doc, category in zip(docs_new, predicted):
+    print('%r => %s' % (doc, docs_target_names[category]))
+    print '\n'
+```
+
+In order to make the whole process compact, scikit-learn provides `pipeline` to integrate the whole above prcoess.
+
+```python
+# Build pipeline of above steps
+from sklearn.pipeline import Pipeline
+text_clf = Pipeline([('vect', CountVectorizer()),
+                     ('tfidf', TfidfTransformer()),
+                     ('clf', MultinomialNB()),
+])
+
+# Train pipeline
+text_clf = text_clf.fit(IMDB_train['pos'] + IMDB_train['neg'], [1] * 12500 + [0] * 12500)
+
+# Evaluate performance of test set
+import numpy as np
+predicted = text_clf.predict(IMDB_test['pos'] + IMDB_test['neg'])
+np.mean(predicted == [1] * 12500 + [0] * 12500) 
+```
+
+
+
