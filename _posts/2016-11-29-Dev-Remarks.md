@@ -113,6 +113,23 @@ The desgin of scikit-learn's naive bayes classifier is elegant. There're 4 steps
 4. Train the Naive Bayes model based on `tf-idf` features and corresponding target values.
 5. Predict the test data set.
 
+#### Notes for `tf` and `tf-idf`
+
+`tf` means term frequency, which gives the number of times that term $$t$$ occurs in document $$d$$. For example, for document `I think I like you`, assume `t` represents the term `I`, then we have the result `tf(t, d) = 2`.
+
+`idf` means inverse document frequency, which estimates how common or rare a word appears across all documents. Define:
+
+- $$N$$, total number of documents in the corpus $$N = \vert D \vert$$.
+- $$\vert \{ d \in D: t \in d \}$$, the number of documents that contains the term `t`. In order to avoid division-by-zero when `t` is not in corpus, it's common to adjust the denominator to $$1 + \vert \{ d \in D: t \in d \} \vert$$.
+
+Then, the `idf` is defined as
+
+$$idf(t, D) = \log \frac{N}{\vert \{ d \in D: t \in d \}}$$
+
+Finally, the `tf-idf` is defined as
+
+$$tfidf(t, d, D) = tf(t, d)\cdot idf(t, D)$$
+
 **Step 1**: get raw data
 
 ```python
